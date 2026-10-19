@@ -1,6 +1,6 @@
 import {CageLayout} from './layout.js';
 // All rates are game design, not veterinary predictions. No network dependencies.
-export const VERSION = '0.3.3';
+export const VERSION = '0.4.0';
 export const clamp = (n, min=0, max=100) => Math.min(max, Math.max(min,n));
 export const COATS={golden:{name:'Золотистый',light:'#e5c79e',mid:'#ddba8d',dark:'#ad7a4e'},snow:{name:'Светлый',light:'#f5f1e6',mid:'#dedbd0',dark:'#a7a295'},gray:{name:'Серый',light:'#cbd0d2',mid:'#9ca6ad',dark:'#5c6872'}};
 export const normalizeName=value=>typeof value==='string'?Array.from(value.trim()).slice(0,24).join(''):'';

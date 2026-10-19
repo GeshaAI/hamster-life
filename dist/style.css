@@ -35,3 +35,7 @@
 .intro>div:first-child{min-width:0}.intro h1{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.intro .mode-pill{flex-shrink:0}
 
 #world.playing{touch-action:none;cursor:pointer}
+
+/* Keep the 3D viewer accessible on narrow touch screens. */
+#render-mode{font-size:10px;color:#6f815e;white-space:nowrap}.scene-top{gap:8px;flex-wrap:wrap}.scene-tools{flex-wrap:wrap}#modal canvas+ .note{margin-top:12px}#modal select{max-width:100%}
+@media(max-width:420px){.scene-tools{gap:2px}.scene-tools .quiet{padding:8px 5px;font-size:11px}#render-mode{font-size:9px}}
