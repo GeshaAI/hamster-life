@@ -1,16 +1,16 @@
-# Hamster AI prototype for Godot 4
+# Godot 4.4.1 integration prototype
 
-This is an **experimental standalone module**. It is not yet wired into the existing HAMSTER LIFE gameplay.
+Open `project.godot` in Godot 4.4.1. Run `main.tscn`. Compatibility renderer is selected for mobile.
+The scene joins the existing brain, locomotion and local save modules, and creates a simple cage, house, wheel, feeder, water bottle, camera and refill controls.
 
-## Scene setup
-1. Add a Node3D called HamsterAI and attach `godot/hamster_brain.gd`.
-2. Add the imported GLB hamster as a child, and attach `godot/hamster_locomotion.gd` to its root.
-3. Add three Marker3D nodes: FoodPoint, WaterPoint, BedPoint (at the relevant cage locations).
-4. Assign the four exported references in the HamsterAI inspector.
-5. Set the HamsterAI origin to the cage centre and roam_radius to a value that keeps the model inside the cage.
+The Blender workflow installs the missing NumPy dependency, fails on Python exceptions, validates GLB/BLEND files, imports the generated GLB in Godot, runs `tests/smoke.gd -- --require-glb`, then uploads the source project ZIP alongside the model. Download `hamster-model` in Actions and extract `hamster-godot-project.zip` on the tablet. Without `assets/hamster.glb`, the local scene explicitly displays placeholder geometry.
 
-## Behaviors
-The brain tracks hunger, thirst and fatigue on a 0–100 scale; larger values mean greater need. It wanders, seeks food/water/bed, then eats, drinks or sleeps. The locomotion script receives a direction vector and animates paw pivots.
+The GLB is rotated inside the locomotion root: Blender front -Y exports as glTF +Z, while the walker faces Godot -Z. Movement directions use global coordinates even below a rotated parent. The brain consumes actual available food and water; empty bowls do not remove hunger. Saves validate every field before applying it and use a temporary file then rename.
 
-## Current limitations
-No collision avoidance, navigation mesh, food inventory, actual water consumption, save/load, illness, aging, death, or offline progression yet. All values are prototypes and not biologically calibrated. The walk controller moves the model directly and requires an unobstructed floor. Do not use this module for a production release until tested in Godot.
+Check locally:
+```
+godot --headless --path godot --editor --import
+godot --headless --path godot --script res://tests/smoke.gd
+```
+
+Limits: this is a separate 3D integration demo, not the complete browser game or an APK. Furniture collision avoidance, a skeleton, action animation clips, wheel use, biological health/aging, and Android performance testing are still unfinished. Offline progression is a capped 24-hour approximation of growing needs; it does not run a hidden 3D scene or consume inventory. These saves are separate from browser saves. The procedural Blender model has idle animation, not realistic fur or fully rigged movement. Do not claim device acceptance from a headless check.

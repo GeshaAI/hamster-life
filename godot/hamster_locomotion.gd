@@ -15,7 +15,7 @@ func _ready() -> void:
   var paw := find_child(paw_name, true, false) as Node3D
   if paw != null:
    _paws.append(paw)
-func _process(delta: float) -> void:
+func _physics_process(delta: float) -> void:
  var direction := movement_direction
  direction.y = 0.0
  if direction.length_squared() > 1.0:
@@ -23,9 +23,9 @@ func _process(delta: float) -> void:
  var intensity: float = minf(direction.length(), 1.0)
  if intensity > 0.001:
   _phase += delta * stride_frequency
-  position += direction * walk_speed * delta
+  global_position += direction * walk_speed * delta
   var facing := atan2(-direction.x, -direction.z)
-  rotation.y = lerp_angle(rotation.y, facing, minf(delta * 9.0, 1.0))
+  global_rotation.y = lerp_angle(global_rotation.y, facing, minf(delta * 9.0, 1.0))
  for i in range(_paws.size()):
   var diagonal: float = 1.0 if i == 0 or i == 3 else -1.0
   _paws[i].rotation.x = sin(_phase * TAU + (0.0 if diagonal > 0.0 else PI)) * stride_angle * intensity

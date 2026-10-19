@@ -59,11 +59,15 @@ func _physics_process(delta: float) -> void:
     elif state == State.SEEK_WATER: state = State.DRINK if water_amount > 0.0 else State.WANDER
     else: state = State.SLEEP
   State.EAT:
-   hunger = maxf(0.0, hunger - 22.0 * delta)
-   if _activity_timer <= 0.0: _resume()
+   var eaten := minf(food_amount, minf(food_consumption_rate * delta, hunger / 2.75))
+   food_amount -= eaten
+   hunger = maxf(0.0, hunger - eaten * 2.75)
+   if _activity_timer <= 0.0 or food_amount <= 0.0 or hunger <= 0.0: _resume()
   State.DRINK:
-   thirst = maxf(0.0, thirst - 30.0 * delta)
-   if _activity_timer <= 0.0: _resume()
+   var drunk := minf(water_amount, minf(water_consumption_rate * delta, thirst / 3.0))
+   water_amount -= drunk
+   thirst = maxf(0.0, thirst - drunk * 3.0)
+   if _activity_timer <= 0.0 or water_amount <= 0.0 or thirst <= 0.0: _resume()
   State.SLEEP:
    fatigue = maxf(0.0, fatigue - recover_per_second * 6.0 * delta)
    if _activity_timer <= 0.0: _resume()

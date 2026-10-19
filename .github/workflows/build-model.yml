@@ -1,19 +1,23 @@
 name: Build hamster GLB
 on:
   workflow_dispatch:
+  pull_request:
+    paths: ['tools/blender/**', 'godot/**', '.github/workflows/build-model.yml']
   push:
     paths:
-      - 'tools/blender/hamster.py'
+      - 'tools/blender/**'
+      - 'godot/**'
       - '.github/workflows/build-model.yml'
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Install Blender
-        run: sudo apt-get update && sudo apt-get install -y blender
+        run: sudo apt-get update && sudo apt-get install -y blender python3-numpy
       - name: Generate model
-        run: blender -b -t 2 --python tools/blender/hamster.py
+        run: blender -b -t 2 --python-exit-code 1 --python tools/blender/hamster.py
       - name: Validate generated model files
         run: |
           test -s /tmp/hamster.glb
@@ -26,9 +30,20 @@ jobs:
           assert length == os.path.getsize('/tmp/hamster.glb') and length > 1000
           print('GLB verified:', length, 'bytes')
           PY
+      - name: Import model and test integration in Godot 4.4.1
+        run: |
+          curl --fail --location --retry 3 -o /tmp/godot.zip https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
+          unzip -q /tmp/godot.zip -d /tmp/godot
+          mkdir -p godot/assets
+          cp /tmp/hamster.glb godot/assets/hamster.glb
+          /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --editor --import
+          timeout 120 /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --script res://tests/smoke.gd -- --require-glb
+          zip -r /tmp/hamster-godot-project.zip godot -x 'godot/.godot/*'
       - uses: actions/upload-artifact@v4
         with:
+          if-no-files-found: error
           name: hamster-model
           path: |
             /tmp/hamster.glb
             /tmp/hamster.blend
+            /tmp/hamster-godot-project.zip

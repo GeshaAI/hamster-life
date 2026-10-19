@@ -1,47 +1,42 @@
 extends RefCounted
 class_name HamsterSave
-## Local, offline JSON save for the prototype. No server or paid API.
+## Atomic local save. Offline needs approximation is separate from browser saves.
 const SAVE_PATH := "user://hamster_save_v1.json"
 const MAX_OFFLINE_SECONDS := 86400.0
 static func save_brain(brain: Node) -> bool:
- var payload := {
-  "version": 1,
-  "saved_at_unix": Time.get_unix_time_from_system(),
-  "hunger": clampf(float(brain.get("hunger")), 0.0, 100.0),
-  "thirst": clampf(float(brain.get("thirst")), 0.0, 100.0),
-  "fatigue": clampf(float(brain.get("fatigue")), 0.0, 100.0),
-  "food_amount": float(brain.get("food_amount")),
-  "water_amount": float(brain.get("water_amount"))
- }
- var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
- if file == null:
-  push_warning("Cannot open hamster save: " + str(FileAccess.get_open_error()))
-  return false
+ var payload := {"version": 1, "saved_at_unix": Time.get_unix_time_from_system()}
+ for key in ["hunger", "thirst", "fatigue", "food_amount", "water_amount"]:
+  var value: Variant = brain.get(key)
+  if typeof(value) not in [TYPE_FLOAT, TYPE_INT] or not is_finite(float(value)):
+   return false
+  payload[key] = clampf(float(value), 0.0, 100.0)
+ var file := FileAccess.open(SAVE_PATH + ".tmp", FileAccess.WRITE)
+ if file == null: return false
  file.store_string(JSON.stringify(payload))
+ file.flush()
+ var write_error := file.get_error()
  file.close()
- return true
+ if write_error != OK: return false
+ return DirAccess.rename_absolute(SAVE_PATH + ".tmp", SAVE_PATH) == OK
 static func load_brain(brain: Node) -> bool:
- if not FileAccess.file_exists(SAVE_PATH):
-  return false
+ if not FileAccess.file_exists(SAVE_PATH): return false
  var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
- if file == null:
-  return false
+ if file == null: return false
  var parsed: Variant = JSON.parse_string(file.get_as_text())
  file.close()
- if typeof(parsed) != TYPE_DICTIONARY:
-  return false
+ if typeof(parsed) != TYPE_DICTIONARY: return false
  var data: Dictionary = parsed
- if int(data.get("version", -1)) != 1:
-  return false
+ if typeof(data.get("version")) not in [TYPE_INT, TYPE_FLOAT] or data.version != 1: return false
  for key in ["hunger", "thirst", "fatigue", "saved_at_unix"]:
-  if not data.has(key) or typeof(data[key]) not in [TYPE_FLOAT, TYPE_INT]:
+  if not data.has(key) or typeof(data[key]) not in [TYPE_FLOAT, TYPE_INT] or not is_finite(float(data[key])):
    return false
- var elapsed := clampf(Time.get_unix_time_from_system() - float(data["saved_at_unix"]), 0.0, MAX_OFFLINE_SECONDS)
- brain.set("hunger", clampf(float(data["hunger"]) + float(brain.get("hunger_per_second")) * elapsed, 0.0, 100.0))
- brain.set("thirst", clampf(float(data["thirst"]) + float(brain.get("thirst_per_second")) * elapsed, 0.0, 100.0))
- brain.set("fatigue", clampf(float(data["fatigue"]) + float(brain.get("fatigue_per_second")) * elapsed, 0.0, 100.0))
- if data.has("food_amount"):
-  brain.set("food_amount", clampf(float(data["food_amount"]), 0.0, float(brain.get("food_capacity"))))
- if data.has("water_amount"):
-  brain.set("water_amount", clampf(float(data["water_amount"]), 0.0, float(brain.get("water_capacity"))))
+ for key in ["food_amount", "water_amount"]:
+  if data.has(key) and (typeof(data[key]) not in [TYPE_FLOAT, TYPE_INT] or not is_finite(float(data[key]))):
+   return false
+ var elapsed := clampf(Time.get_unix_time_from_system() - float(data.saved_at_unix), 0.0, MAX_OFFLINE_SECONDS)
+ # Prototype approximation: needs grow during absence; no hidden scene is run.
+ for key in ["hunger", "thirst", "fatigue"]:
+  brain.set(key, clampf(float(data[key]) + float(brain.get(key + "_per_second")) * elapsed, 0.0, 100.0))
+ for key in ["food_amount", "water_amount"]:
+  if data.has(key): brain.set(key, clampf(float(data[key]), 0.0, float(brain.get(key.replace("_amount", "_capacity")))))
  return true
