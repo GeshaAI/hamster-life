@@ -22,3 +22,6 @@
   .save-line{margin:12px 0 4px;font-size:10px}
   footer{display:none}
 }
+
+.cage-summary,.bond-summary{font-size:11px;color:#748164;line-height:1.5;margin-top:10px}.bond-summary{border-top:1px solid #dfe3d6;padding-top:8px}
+@media (min-width:700px) and (min-height:480px) and (orientation:landscape){.actions button{min-height:72px;padding:8px 12px;gap:2px}.meter{margin:8px 0}.cage-summary,.bond-summary{font-size:10px;margin-top:7px}.bond-summary{padding-top:6px}.save-line{margin-top:8px}}
