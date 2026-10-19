@@ -1,10 +1,10 @@
 import {CageLayout} from './layout.js';
-import {initialState,clamp,CHARACTERS,AILMENTS} from './model.js';
+import {initialState,clamp,CHARACTERS,AILMENTS,COATS,normalizeName} from './model.js';
 export class SaveManager {
  static key='hamster-life-v1';
  static validate(raw){if(!raw||raw.version!==1||!['child','realistic'].includes(raw.mode)||typeof raw.alive!=='boolean')throw Error('Неподдерживаемое сохранение');const s=initialState();
  for(const k of ['lastSeen','age','elapsed','seed']){if(!Number.isFinite(raw[k])||raw[k]<0)throw Error('Повреждено поле '+k);s[k]=raw[k];}
- s.mode=raw.mode;s.alive=raw.alive;s.name=typeof raw.name==='string'?raw.name.slice(0,30):'Пончик';s.deathReason=typeof raw.deathReason==='string'?raw.deathReason.slice(0,150):null;
+ s.mode=raw.mode;s.alive=raw.alive;s.name=normalizeName(raw.name)||'Пончик';if(raw.coat!==undefined){if(!Object.hasOwn(COATS,raw.coat))throw Error('Повреждён окрас');s.coat=raw.coat;}s.deathReason=typeof raw.deathReason==='string'?raw.deathReason.slice(0,150):null;
  for(const k of Object.keys(s.needs)){if(!Number.isFinite(raw.needs?.[k]))throw Error('Повреждены потребности');s.needs[k]=clamp(raw.needs[k]);}
  for(const k of Object.keys(s.cage)){
   // 0.1 saves have no nest/stash. Missing additive fields get safe defaults.

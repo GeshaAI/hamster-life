@@ -1,7 +1,10 @@
 import {CageLayout} from './layout.js';
 // All rates are game design, not veterinary predictions. No network dependencies.
-export const VERSION = '0.3.0';
+export const VERSION = '0.3.1';
 export const clamp = (n, min=0, max=100) => Math.min(max, Math.max(min,n));
+export const COATS={golden:{name:'Золотистый',light:'#e5c79e',mid:'#ddba8d',dark:'#ad7a4e'},snow:{name:'Светлый',light:'#f5f1e6',mid:'#dedbd0',dark:'#a7a295'},gray:{name:'Серый',light:'#cbd0d2',mid:'#9ca6ad',dark:'#5c6872'}};
+export const normalizeName=value=>typeof value==='string'?Array.from(value.trim()).slice(0,24).join(''):'';
+export function petText(s,text){return String(text).replaceAll('Пончика','питомца').replaceAll('Пончику','питомцу').replaceAll('Пончике','питомце').replaceAll('Пончиком','питомцем').replaceAll('Пончик',s.name);}
 export const CHARACTERS = {
  curious: {name:'Любопытный', wheel:.28, speed:70, trustGain:4},
  energetic: {name:'Непоседа', wheel:.55, speed:85, trustGain:3},
@@ -10,7 +13,7 @@ export const CHARACTERS = {
 export const AILMENTS = {dirty:{name:'Недомогание из-за грязи',cause:'Долго не менялась подстилка.',advice:'Уберите клетку, проверьте корм и воду, дайте спокойно отдохнуть.'},deprivation:{name:'Недомогание из-за нехватки ухода',cause:'Долго не хватало еды или воды.',advice:'Наполните кормушку и поилку. Пончику нужно время, чтобы поесть, попить и восстановиться.'},stress:{name:'Недомогание из-за стресса',cause:'Пончик долго был сильно встревожен.',advice:'Дайте ему отдохнуть в домике, не будите. Проверьте чистоту, корм и воду.'}};
 export const LABELS = {explore:'исследует клетку',eat:'ест зёрнышки',drink:'пьёт воду',sleep:'спит в домике',rest:'отдыхает и набирается сил',wheel:'бежит в колесе',groom:'умывается',hide:'отдыхает в укрытии',nest:'обустраивает гнездо',gather:'собирает зёрнышки',store:'несёт еду в домик',eatStash:'ест из своего запаса',dead:'жизнь завершилась'};
 export function initialState(now=Date.now()) {
- return {version:1,lastSeen:now,mode:'child',name:'Пончик',age:30*86400,elapsed:0,alive:true,deathReason:null,
+ return {version:1,lastSeen:now,mode:'child',name:'Пончик',coat:'golden',age:30*86400,elapsed:0,alive:true,deathReason:null,
   needs:{hunger:46,thirst:32,energy:78,stress:12,health:100},
   bond:{character:'curious',trust:20,lastContact:now-60000},
   illness:{kind:null,severity:0,exposure:{dirty:0,deprivation:0,stress:0}},
@@ -18,7 +21,7 @@ export function initialState(now=Date.now()) {
   pet:{x:505,state:'explore',target:505,timer:0,sleeping:false,direction:1,carry:0},
   journal:[{at:now,text:'Пончик поселился в новом домике.'}],seed:7351};
 }
-export class EventJournal {static add(s,text){s.journal.push({at:s.lastSeen,text});s.journal=s.journal.slice(-100);}}
+export class EventJournal {static add(s,text){s.journal.push({at:s.lastSeen,text:petText(s,text)});s.journal=s.journal.slice(-100);}}
 export class TimeSystem {
  static interval(last,now){if(!Number.isFinite(last)||!Number.isFinite(now))return {seconds:0,warning:'Время сохранения повреждено.'};const d=(now-last)/1000;return {seconds:clamp(d,0,30*86400),warning:d<0?'Часы переведены назад. Отрицательное время не учитывалось.':d>30*86400?'Прошло больше 30 дней. Рассчитаны первые 30 дней.':null};}
 }
