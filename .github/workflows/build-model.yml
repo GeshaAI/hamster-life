@@ -14,6 +14,18 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y blender
       - name: Generate model
         run: blender -b -t 2 --python tools/blender/hamster.py
+      - name: Validate generated model files
+        run: |
+          test -s /tmp/hamster.glb
+          test -s /tmp/hamster.blend
+          python3 - <<'PY'
+          import struct, os
+          with open('/tmp/hamster.glb', 'rb') as f:
+              magic, version, length = struct.unpack('<4sII', f.read(12))
+          assert magic == b'glTF' and version == 2
+          assert length == os.path.getsize('/tmp/hamster.glb') and length > 1000
+          print('GLB verified:', length, 'bytes')
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: hamster-model
