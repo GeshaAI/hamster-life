@@ -20,10 +20,17 @@ var state: State = State.WANDER
 var _target: Vector3 = Vector3.ZERO
 var _activity_timer: float = 0.0
 var _rng := RandomNumberGenerator.new()
+var _autosave_elapsed: float = 0.0
+const SAVE_INTERVAL_SECONDS := 30.0
 func _ready() -> void:
  _rng.randomize()
+ HamsterSave.load_brain(self)
  _pick_roam_target()
 func _physics_process(delta: float) -> void:
+ _autosave_elapsed += delta
+ if _autosave_elapsed >= SAVE_INTERVAL_SECONDS:
+  _autosave_elapsed = 0.0
+  HamsterSave.save_brain(self)
  hunger = clampf(hunger + hunger_per_second * delta, 0.0, 100.0)
  thirst = clampf(thirst + thirst_per_second * delta, 0.0, 100.0)
  if state != State.SLEEP:
@@ -78,3 +85,7 @@ func _pick_roam_target() -> void:
  var angle := _rng.randf_range(0.0, TAU)
  var radius := sqrt(_rng.randf()) * maxf(roam_radius, 0.1)
  _target = global_position + Vector3(cos(angle) * radius, 0.0, sin(angle) * radius)
+
+func _notification(what: int) -> void:
+ if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
+  HamsterSave.save_brain(self)
