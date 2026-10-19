@@ -13,6 +13,12 @@ enum State { WANDER, SEEK_FOOD, EAT, SEEK_WATER, DRINK, SEEK_BED, SLEEP }
 @export var thirst_per_second: float = 0.65
 @export var fatigue_per_second: float = 0.18
 @export var recover_per_second: float = 1.7
+@export var food_capacity: float = 100.0
+@export var water_capacity: float = 100.0
+@export var food_consumption_rate: float = 8.0
+@export var water_consumption_rate: float = 10.0
+var food_amount: float = 70.0
+var water_amount: float = 70.0
 var hunger: float = 15.0
 var thirst: float = 12.0
 var fatigue: float = 5.0
@@ -38,9 +44,9 @@ func _physics_process(delta: float) -> void:
  _activity_timer = maxf(0.0, _activity_timer - delta)
  match state:
   State.WANDER:
-   if thirst >= 65.0 and water_point != null:
+   if thirst >= 65.0 and water_amount > 0.0 and water_point != null:
     _seek(State.SEEK_WATER, water_point.global_position)
-   elif hunger >= 65.0 and food_point != null:
+   elif hunger >= 65.0 and food_amount > 0.0 and food_point != null:
     _seek(State.SEEK_FOOD, food_point.global_position)
    elif fatigue >= 70.0 and bed_point != null:
     _seek(State.SEEK_BED, bed_point.global_position)
@@ -49,8 +55,8 @@ func _physics_process(delta: float) -> void:
   State.SEEK_FOOD, State.SEEK_WATER, State.SEEK_BED:
    if _arrived():
     _activity_timer = 3.0 if state != State.SEEK_BED else 8.0
-    if state == State.SEEK_FOOD: state = State.EAT
-    elif state == State.SEEK_WATER: state = State.DRINK
+    if state == State.SEEK_FOOD: state = State.EAT if food_amount > 0.0 else State.WANDER
+    elif state == State.SEEK_WATER: state = State.DRINK if water_amount > 0.0 else State.WANDER
     else: state = State.SLEEP
   State.EAT:
    hunger = maxf(0.0, hunger - 22.0 * delta)
@@ -89,3 +95,11 @@ func _pick_roam_target() -> void:
 func _notification(what: int) -> void:
  if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
   HamsterSave.save_brain(self)
+
+func refill_food(amount: float = 30.0) -> void:
+ food_amount = clampf(food_amount + maxf(amount, 0.0), 0.0, food_capacity)
+ HamsterSave.save_brain(self)
+
+func refill_water(amount: float = 30.0) -> void:
+ water_amount = clampf(water_amount + maxf(amount, 0.0), 0.0, water_capacity)
+ HamsterSave.save_brain(self)
