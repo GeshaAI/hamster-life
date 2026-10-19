@@ -1,6 +1,6 @@
 import {CageLayout} from './layout.js';
 // All rates are game design, not veterinary predictions. No network dependencies.
-export const VERSION = '0.3.1';
+export const VERSION = '0.3.2';
 export const clamp = (n, min=0, max=100) => Math.min(max, Math.max(min,n));
 export const COATS={golden:{name:'Золотистый',light:'#e5c79e',mid:'#ddba8d',dark:'#ad7a4e'},snow:{name:'Светлый',light:'#f5f1e6',mid:'#dedbd0',dark:'#a7a295'},gray:{name:'Серый',light:'#cbd0d2',mid:'#9ca6ad',dark:'#5c6872'}};
 export const normalizeName=value=>typeof value==='string'?Array.from(value.trim()).slice(0,24).join(''):'';
@@ -11,12 +11,13 @@ export const CHARACTERS = {
  shy: {name:'Осторожный', wheel:.18, speed:55, trustGain:2}
 };
 export const AILMENTS = {dirty:{name:'Недомогание из-за грязи',cause:'Долго не менялась подстилка.',advice:'Уберите клетку, проверьте корм и воду, дайте спокойно отдохнуть.'},deprivation:{name:'Недомогание из-за нехватки ухода',cause:'Долго не хватало еды или воды.',advice:'Наполните кормушку и поилку. Пончику нужно время, чтобы поесть, попить и восстановиться.'},stress:{name:'Недомогание из-за стресса',cause:'Пончик долго был сильно встревожен.',advice:'Дайте ему отдохнуть в домике, не будите. Проверьте чистоту, корм и воду.'}};
-export const LABELS = {explore:'исследует клетку',eat:'ест зёрнышки',drink:'пьёт воду',sleep:'спит в домике',rest:'отдыхает и набирается сил',wheel:'бежит в колесе',groom:'умывается',hide:'отдыхает в укрытии',nest:'обустраивает гнездо',gather:'собирает зёрнышки',store:'несёт еду в домик',eatStash:'ест из своего запаса',dead:'жизнь завершилась'};
+export const LABELS = {explore:'исследует клетку',eat:'ест зёрнышки',drink:'пьёт воду',sleep:'спит в домике',rest:'отдыхает и набирается сил',play:'играет с мячиком',wheel:'бежит в колесе',groom:'умывается',hide:'отдыхает в укрытии',nest:'обустраивает гнездо',gather:'собирает зёрнышки',store:'несёт еду в домик',eatStash:'ест из своего запаса',dead:'жизнь завершилась'};
 export function initialState(now=Date.now()) {
  return {version:1,lastSeen:now,mode:'child',name:'Пончик',coat:'golden',age:30*86400,elapsed:0,alive:true,deathReason:null,
   needs:{hunger:46,thirst:32,energy:78,stress:12,health:100},
   bond:{character:'curious',trust:20,lastContact:now-60000},
   illness:{kind:null,severity:0,exposure:{dirty:0,deprivation:0,stress:0}},
+  play:{remaining:0,x:500,engaged:0,cooldownUntil:0},
   cage:{food:80,water:90,clean:95,...CageLayout.defaults(),nest:20,stash:0},
   pet:{x:505,state:'explore',target:505,timer:0,sleeping:false,direction:1,carry:0},
   journal:[{at:now,text:'Пончик поселился в новом домике.'}],seed:7351};
@@ -72,6 +73,38 @@ export class HealthSystem {
   return {title:Object.values(risk).some(Boolean)?'Пончику нужен уход':'Самочувствие спокойное',detail:'Признаков игрового недомогания пока нет.',advice:risk.deprivation?'Проверьте корм и воду.':risk.dirty?'Пора убрать клетку.':risk.stress?'Дайте спокойно отдохнуть в домике.':'Поддерживайте запасы и чистоту, не мешайте спать.',severity:0,recovering:false};
  }
 }
+export class PlaySystem {
+ static canStart(s){
+  const n=s.needs;
+  if(!s.alive)return {ok:false,message:'Жизнь питомца завершилась. Его дневник сохранён.'};
+  if(s.play.remaining>0)return {ok:false,message:'Мячик уже в клетке.'};
+  if(s.illness.kind||n.health<60)return {ok:false,message:'Сейчас питомцу нужен уход и спокойный отдых.'};
+  if(['sleep','rest'].includes(s.pet.state)||n.energy<45)return {ok:false,message:'Питомец устал или спит. Дайте ему отдохнуть.'};
+  if(n.hunger>38||n.thirst>42)return {ok:false,message:'Сначала питомцу нужно поесть и попить.'};
+  if(n.stress>60)return {ok:false,message:'Питомец встревожен. Лучше сначала тихо поговорить и дать ему покой.'};
+  if(s.elapsed<s.play.cooldownUntil)return {ok:false,message:'После игры нужна небольшая пауза. Попробуйте чуть позже.'};
+  return {ok:true,message:'Можно спокойно поиграть.'};
+ }
+ static start(s){const ready=this.canStart(s);if(!ready.ok)return ready;
+  s.play={remaining:30,x:clamp(s.pet.x+(s.pet.x>770?-160:160),70,930),engaged:0,cooldownUntil:s.elapsed+90};
+  s.pet.timer=0;EventJournal.add(s,'Вы предложили питомцу деревянный мячик.');
+  return {ok:true,message:'Коснитесь клетки или двигайте мячик пальцем. Питомец сам решает, когда подойти.'};
+ }
+ static move(s,x){if(!s.alive||s.play.remaining<=0||!Number.isFinite(x))return false;s.play.x=clamp(x,70,930);s.pet.timer=0;return true;}
+ static end(s,reason='stopped'){
+  if(s.play.remaining<=0)return;
+  s.play.remaining=0;s.pet.timer=0;
+  if(!s.alive)return;
+  if(s.pet.state==='play'){s.pet.state='groom';s.pet.target=s.pet.x;}
+  if(reason==='finished'&&s.play.engaged>=3){s.bond.trust=clamp(s.bond.trust+3);EventJournal.add(s,'Пончик спокойно поиграл с мячиком и стал чуть увереннее рядом с вами.');}
+  else EventJournal.add(s,reason==='care'?'Игра закончена: питомцу нужен уход или отдых.':'Мячик убран. Питомец возвращается к своим делам.');
+ }
+ static step(s,dt){if(s.play.remaining<=0)return;
+  if(!s.alive){this.end(s,'dead');return;}
+  if(s.illness.kind||s.needs.health<60||s.needs.energy<25||s.needs.hunger>65||s.needs.thirst>65||s.needs.stress>70){this.end(s,'care');return;}
+  if(s.play.remaining<=dt)this.end(s,'finished');else s.play.remaining-=dt;
+ }
+}
 function random(s){s.seed=(s.seed*1664525+1013904223)>>>0;return s.seed/4294967296;}
 export class HamsterAI {
  static choose(s){const n=s.needs,p=s.pet,c=s.cage,character=CHARACTERS[s.bond.character];let state,target;
@@ -82,6 +115,7 @@ export class HamsterAI {
   else if(n.stress>(s.bond.character==='shy'?50:65)){state='hide';target=c.home;}
   else if(s.illness.kind){state='rest';target=c.home;}
   else if(n.health<45){state='sleep';target=c.home;}
+  else if(s.play.remaining>0){state='play';target=clamp(s.play.x-Math.sign(s.play.x-p.x||p.direction)*45,60,940);}
   else if(c.nest<80&&n.energy>35){state='nest';target=c.home;}
   else if(c.stash<12&&c.food>20&&n.hunger<30&&n.energy>40){state='gather';target=c.bowl;}
   else {const r=random(s);state=r<character.wheel&&n.energy>45?'wheel':r<character.wheel+.18?'groom':'explore';target=state==='wheel'?c.wheel:state==='groom'?p.x:clamp(100+random(s)*800,70,930);}
@@ -106,6 +140,7 @@ export class HamsterAI {
   if(p.state==='nest'){c.nest=clamp(c.nest+actionTime*6);if(c.nest>=90)p.timer=0;}
   if(p.state==='gather'){const amount=Math.min(c.food,6-p.carry,actionTime);c.food-=amount;p.carry+=amount;if(p.carry>=6||c.food<=0)p.timer=0;}
   if(p.state==='store'&&p.carry>0&&actionTime>0){const amount=Math.min(p.carry,100-c.stash);c.stash+=amount;p.carry-=amount;p.timer=0;EventJournal.add(s,`В домике спрятано ${Math.round(c.stash)} единиц корма.`);}
+  if(p.state==='play'){p.direction=Math.sign(s.play.x-p.x)||p.direction;s.play.engaged=clamp(s.play.engaged+actionTime,0,30);n.stress=clamp(n.stress-actionTime*.25);n.energy=clamp(n.energy-actionTime*.12);}
   if(p.state==='groom'||p.state==='hide')n.stress=clamp(n.stress-actionTime*.12);
   if(p.state==='sleep'&&n.energy>=88)p.timer=0;
  }
@@ -114,7 +149,7 @@ export class SimulationEngine {
  constructor(state=initialState()){this.state=state;}
  advance(seconds,offline=false){const s=this.state;let remaining=clamp(seconds,0,30*86400);const actual=remaining;
   while(remaining>0){const dt=Math.min(remaining,offline?30:.5);s.lastSeen+=dt*1000;
-   if(s.alive){s.age+=dt;s.elapsed+=dt;CageSystem.step(s,dt);HealthSystem.step(s,dt);NeedsSystem.step(s,dt);if(s.alive)HamsterAI.step(s,dt);}
+   if(s.alive){s.age+=dt;s.elapsed+=dt;CageSystem.step(s,dt);HealthSystem.step(s,dt);NeedsSystem.step(s,dt);if(s.alive)HamsterAI.step(s,dt);PlaySystem.step(s,dt);}
    remaining-=dt;
   }
   if(offline&&actual>60)EventJournal.add(s,`Пока вас не было: прошло ${Math.round(actual/60)} мин. ${s.mode==='child'?'Защита детского режима сохранила здоровье не ниже 25%.':'Жизнь рассчитана по запасам и потребностям.'}`);

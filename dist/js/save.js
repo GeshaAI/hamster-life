@@ -22,6 +22,10 @@ export class SaveManager {
   for(const key of ['dirty','deprivation','stress'])if(!Number.isFinite(ill.exposure?.[key])||ill.exposure[key]<0)throw Error('Повреждена история ухода');
   s.illness={kind:ill.kind,severity:ill.severity,exposure:Object.fromEntries(Object.entries(ill.exposure).filter(([key])=>['dirty','deprivation','stress'].includes(key)).map(([key,value])=>[key,clamp(value,0,8*3600)]))};
  }
+ if(raw.play!==undefined){
+  const play=raw.play;if(!play||!['remaining','x','engaged','cooldownUntil'].every(key=>Number.isFinite(play[key]))||play.remaining<0||play.remaining>30||play.engaged<0||play.engaged>30||play.cooldownUntil<0)throw Error('Повреждена игра с мячиком');
+  s.play={remaining:s.alive?play.remaining:0,x:clamp(play.x,70,930),engaged:play.engaged,cooldownUntil:Math.min(play.cooldownUntil,s.elapsed+90)};
+ }
  if(raw.pet?.carry!==undefined){if(!Number.isFinite(raw.pet.carry))throw Error('Повреждён переносимый корм');s.pet.carry=clamp(raw.pet.carry,0,6);}
  const repairedLayout=!CageLayout.validate(s.cage).ok;if(repairedLayout)Object.assign(s.cage,CageLayout.defaults());
  s.pet.x=Number.isFinite(raw.pet?.x)?clamp(raw.pet.x,60,940):505;s.pet.target=s.pet.x;s.pet.state=s.alive?'explore':'dead';s.journal=Array.isArray(raw.journal)?raw.journal.filter(e=>Number.isFinite(e?.at)&&typeof e?.text==='string').slice(-100).map(e=>({at:e.at,text:e.text.slice(0,300)})):[];if(repairedLayout)s.journal.push({at:s.lastSeen,text:'Неудобное расположение предметов восстановлено. Прогресс жизни сохранён.'});s.journal=s.journal.slice(-100);return s;
