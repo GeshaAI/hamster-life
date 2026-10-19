@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+const root=new URL('../dist/',import.meta.url);
+test('service worker сохраняет все ресурсы и обслуживает запрос из кэша без сети',async()=>{const handlers={},cached=new Map();let networkCalls=0;const caches={open:async()=>({addAll:async assets=>{for(const asset of assets){const url=new URL(asset,root);const bytes=await fs.readFile(asset==='./'?new URL('index.html',root):url);assert.ok(bytes.length);cached.set(asset,{body:bytes});}}}),keys:async()=>['hamster-life-obsolete','unrelated-cache'],delete:async key=>{assert.equal(key,'hamster-life-obsolete');return true;},match:async req=>cached.get(req.asset)};
+ const context={caches,URL,fetch:async()=>{networkCalls++;throw Error('offline');},self:{location:{origin:'https://example.test'},addEventListener:(name,fn)=>handlers[name]=fn,skipWaiting:async()=>{},clients:{claim:async()=>{}}}};vm.runInNewContext(await fs.readFile(new URL('sw.js',root),'utf8'),context);let pending;handlers.install({waitUntil:p=>pending=p});await pending;handlers.activate({waitUntil:p=>pending=p});await pending;handlers.fetch({request:{method:'GET',url:'https://example.test/js/model.js',asset:'./js/model.js'},respondWith:p=>pending=p});const response=await pending;assert.ok(response.body.length>0);assert.equal(networkCalls,0);
+});
+test('HTML и модули не зависят от внешних CDN или платных API',async()=>{for(const file of ['index.html','style.css','js/model.js','js/app.js','js/save.js','js/renderer.js']){const contents=await fs.readFile(new URL(file,root),'utf8');assert.equal(/https?:\/\//.test(contents),false,file);}});
