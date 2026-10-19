@@ -39,5 +39,40 @@ for sign in (-1,1):
   segment('Whisker_%s_%s'%(sign,index),(.13*sign,-.76,.43+dz),(.44*sign,-.80,.38+dz*.5))
  ell('EyeHighlight'+str(sign),(.19*sign,-.731,.699),(.018,.009,.018),shine,12,8)
 ell('Tail',(0,.61,.32),(.075,.11,.065),pink)
+# Animation controllers: preserve local mesh transforms while parenting.
+def controller(name, location, names):
+ ctrl=bpy.data.objects.new(name,None); bpy.context.collection.objects.link(ctrl)
+ ctrl.location=location
+ bpy.context.view_layer.update()
+ for obj in list(bpy.context.scene.objects):
+  if obj.type!='MESH' or not any(obj.name.startswith(prefix) for prefix in names):
+   continue
+  world=obj.matrix_world.copy()
+  obj.parent=ctrl
+  obj.matrix_world=world
+ return ctrl
+head=controller('HeadController',(0,-.43,.58),('Head','Cheek','Ear','InnerEar','Eye','Muzzle','Nose','Whisker'))
+body=controller('BodyController',(0,.06,.40),('Body','Belly','Tail'))
+def key(obj, frame, location=None, rotation=None, scale=None):
+ if location is not None:
+  obj.location=location; obj.keyframe_insert(data_path='location',frame=frame)
+ if rotation is not None:
+  obj.rotation_euler=rotation; obj.keyframe_insert(data_path='rotation_euler',frame=frame)
+ if scale is not None:
+  obj.scale=scale; obj.keyframe_insert(data_path='scale',frame=frame)
+# One 3-second looping idle cycle (24 fps). GLB exports animation channels.
+scene=bpy.context.scene
+scene.render.fps=24
+scene.frame_start=1
+scene.frame_end=72
+for frame,breath,sniff in [(1,1.0,0),(19,1.025,.045),(37,1.0,0),(55,1.02,-.03),(72,1.0,0)]:
+ key(body,frame,scale=(1,1,breath))
+ key(head,frame,rotation=(sniff,0,0))
+for obj in (body,head):
+ if obj.animation_data and obj.animation_data.action:
+  for fc in obj.animation_data.action.fcurves:
+   for k in fc.keyframe_points:
+    k.interpolation='BEZIER'
+scene.frame_set(1)
 bpy.ops.wm.save_as_mainfile(filepath='/tmp/hamster.blend')
-bpy.ops.export_scene.gltf(filepath='/tmp/hamster.glb',export_format='GLB')
+bpy.ops.export_scene.gltf(filepath='/tmp/hamster.glb',export_format='GLB',export_animations=True)
