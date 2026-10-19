@@ -1,5 +1,6 @@
+import {CageLayout} from './layout.js';
 // All rates are game design, not veterinary predictions. No network dependencies.
-export const VERSION = '0.2.1';
+export const VERSION = '0.3.0';
 export const clamp = (n, min=0, max=100) => Math.min(max, Math.max(min,n));
 export const CHARACTERS = {
  curious: {name:'Любопытный', wheel:.28, speed:70, trustGain:4},
@@ -13,7 +14,7 @@ export function initialState(now=Date.now()) {
   needs:{hunger:46,thirst:32,energy:78,stress:12,health:100},
   bond:{character:'curious',trust:20,lastContact:now-60000},
   illness:{kind:null,severity:0,exposure:{dirty:0,deprivation:0,stress:0}},
-  cage:{food:80,water:90,clean:95,home:165,wheel:760,bowl:390,bottle:895,nest:20,stash:0},
+  cage:{food:80,water:90,clean:95,...CageLayout.defaults(),nest:20,stash:0},
   pet:{x:505,state:'explore',target:505,timer:0,sleeping:false,direction:1,carry:0},
   journal:[{at:now,text:'Пончик поселился в новом домике.'}],seed:7351};
 }

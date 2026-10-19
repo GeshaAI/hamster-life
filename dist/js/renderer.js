@@ -1,7 +1,8 @@
+import {ITEMS} from './layout.js';
 import {LABELS} from './model.js';
 export class Renderer {
  constructor(canvas){this.canvas=canvas;this.c=canvas.getContext('2d');this.previousX=null;this.visualX=null;}
- draw(s,t){const c=this.c;const W=1000,H=540;c.clearRect(0,0,W,H);const gradient=c.createLinearGradient(0,0,0,H);gradient.addColorStop(0,'#ececdf');gradient.addColorStop(1,'#e2e4d2');c.fillStyle=gradient;c.fillRect(0,0,W,H);
+ draw(s,t,editor=null){const c=this.c;const W=1000,H=540;c.clearRect(0,0,W,H);const gradient=c.createLinearGradient(0,0,0,H);gradient.addColorStop(0,'#ececdf');gradient.addColorStop(1,'#e2e4d2');c.fillStyle=gradient;c.fillRect(0,0,W,H);
  // softly lit wallpaper, shadows and a framed botanical print
  for(let x=36;x<1000;x+=80){c.strokeStyle='#d8deca77';c.lineWidth=1;c.beginPath();c.moveTo(x,0);c.lineTo(x,350);c.stroke();}
  this.round(450,34,107,122,5,'#c8cbb4');this.round(456,39,95,110,2,'#f5f2df');c.strokeStyle='#8b9c71';c.lineWidth=3;c.beginPath();c.moveTo(504,128);c.bezierCurveTo(484,90,526,74,501,54);c.stroke();for(let k=0;k<5;k++){const x=500+(k%2?9:-9),y=65+k*11;c.fillStyle=k%2?'#95a17a':'#b2ba8e';c.beginPath();c.ellipse(x,y,11,5,k%2?-.65:.65,0,Math.PI*2);c.fill();}
@@ -9,7 +10,7 @@ export class Renderer {
  const floor=c.createLinearGradient(0,350,0,540);floor.addColorStop(0,'#e4cba0');floor.addColorStop(1,'#d9ba87');c.fillStyle=floor;c.fillRect(0,369,W,171);
  // bedding texture: deterministic, never random-flickering
  for(let i=0;i<440;i++){const x=(i*137.73)%1000,y=376+(i*43.19)%154;c.strokeStyle=i%3?'#bd9e6d55':'#fff1c255';c.lineWidth=2;c.beginPath();c.moveTo(x,y);c.lineTo(x+5+(i%9),y-2+i%6);c.stroke();}
- this.shadow(160,425,130,23);this.house(s.cage.home,s.cage.nest,s.cage.stash);this.wheel(s.cage.wheel,t,s.pet.state==='wheel'&&Math.abs(s.pet.x-s.cage.wheel)<10);
+ this.shadow(s.cage.home,425,130,23);this.house(s.cage.home,s.cage.nest,s.cage.stash);this.wheel(s.cage.wheel,t,s.pet.state==='wheel'&&Math.abs(s.pet.x-s.cage.wheel)<10);
  this.bowl(s.cage.bowl,s.cage.food);this.bottle(s.cage.bottle,s.cage.water);
  // a little wooden bridge and a seed
  this.shadow(570,427,58,12);c.fillStyle='#b28e60';c.beginPath();c.ellipse(565,418,47,28,0,Math.PI,0);c.lineTo(612,430);c.lineTo(518,430);c.fill();for(let i=0;i<7;i++)this.round(523+i*12,394+Math.abs(3-i)*5,9,31,4,'#caa779');
@@ -22,6 +23,7 @@ export class Renderer {
  // transparent front glass rim
  c.strokeStyle='#fff9';c.lineWidth=8;c.beginPath();c.moveTo(9,25);c.lineTo(9,499);c.quadraticCurveTo(9,529,39,529);c.lineTo(963,529);c.quadraticCurveTo(991,529,991,499);c.lineTo(991,25);c.stroke();c.strokeStyle='#a8af9877';c.lineWidth=1;c.strokeRect(17,18,966,503);
  c.fillStyle='#fff3';c.beginPath();c.moveTo(28,50);c.lineTo(58,50);c.lineTo(210,516);c.lineTo(180,516);c.fill();
+ if(editor){const item=ITEMS[editor.selected];c.save();c.strokeStyle='#6f8d54';c.lineWidth=3;c.setLineDash([8,5]);c.strokeRect(s.cage[editor.selected]-item.half-4,item.top-4,item.half*2+8,item.bottom-item.top+8);if(editor.invalid){c.strokeStyle='#b76d4f';c.strokeRect(editor.candidate-item.half,item.top,item.half*2,item.bottom-item.top);}c.restore();}
  if(!s.alive){c.fillStyle='#f6f3eccc';c.fillRect(0,0,1000,540);c.textAlign='center';c.fillStyle='#58634d';c.font='32px Georgia';c.fillText('Пончик останется в вашей памяти',500,260);c.font='17px system-ui';c.fillText('Его история сохранена в дневнике',500,300);c.textAlign='left';}
  }
  round(x,y,w,h,r,color){const c=this.c;c.fillStyle=color;c.beginPath();c.roundRect(x,y,w,h,r);c.fill();}

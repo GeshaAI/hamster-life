@@ -1,3 +1,4 @@
+import {CageLayout} from './layout.js';
 import {initialState,clamp,CHARACTERS,AILMENTS} from './model.js';
 export class SaveManager {
  static key='hamster-life-v1';
@@ -22,7 +23,8 @@ export class SaveManager {
   s.illness={kind:ill.kind,severity:ill.severity,exposure:Object.fromEntries(Object.entries(ill.exposure).filter(([key])=>['dirty','deprivation','stress'].includes(key)).map(([key,value])=>[key,clamp(value,0,8*3600)]))};
  }
  if(raw.pet?.carry!==undefined){if(!Number.isFinite(raw.pet.carry))throw Error('Повреждён переносимый корм');s.pet.carry=clamp(raw.pet.carry,0,6);}
- s.pet.x=Number.isFinite(raw.pet?.x)?clamp(raw.pet.x,60,940):505;s.pet.target=s.pet.x;s.pet.state=s.alive?'explore':'dead';s.journal=Array.isArray(raw.journal)?raw.journal.filter(e=>Number.isFinite(e?.at)&&typeof e?.text==='string').slice(-100).map(e=>({at:e.at,text:e.text.slice(0,300)})):[];return s;
+ const repairedLayout=!CageLayout.validate(s.cage).ok;if(repairedLayout)Object.assign(s.cage,CageLayout.defaults());
+ s.pet.x=Number.isFinite(raw.pet?.x)?clamp(raw.pet.x,60,940):505;s.pet.target=s.pet.x;s.pet.state=s.alive?'explore':'dead';s.journal=Array.isArray(raw.journal)?raw.journal.filter(e=>Number.isFinite(e?.at)&&typeof e?.text==='string').slice(-100).map(e=>({at:e.at,text:e.text.slice(0,300)})):[];if(repairedLayout)s.journal.push({at:s.lastSeen,text:'Неудобное расположение предметов восстановлено. Прогресс жизни сохранён.'});s.journal=s.journal.slice(-100);return s;
  }
  static load(storage){try{const raw=storage.getItem(this.key);if(!raw)return {state:initialState(),message:null};return {state:this.validate(JSON.parse(raw)),message:null};}catch{return {state:initialState(),message:'Сохранение не удалось прочитать. Начата новая жизнь; повреждённая запись не перезаписывается автоматически.',blocked:true};}}
  static save(s,storage){try{storage.setItem(this.key,JSON.stringify(s));return true;}catch{return false;}}

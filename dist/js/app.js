@@ -1,15 +1,17 @@
+import {CageLayout,ITEMS,canvasPoint} from './layout.js';
 import {SimulationEngine,InteractionSystem,EventJournal,LABELS,VERSION,CHARACTERS,HealthSystem} from './model.js';
 import {SaveManager} from './save.js';
 import {Renderer} from './renderer.js';
 const $=id=>document.getElementById(id);let storage;try{storage=window.localStorage;}catch{storage={getItem(){throw Error('blocked');},setItem(){throw Error('blocked');}};}
-const loaded=SaveManager.load(storage);let engine=new SimulationEngine(loaded.state),saveBlocked=!!loaded.blocked;let hidden=document.hidden,last=performance.now(),savedAt=0,paintedAt=0,refreshedAt=0,toastTimer;
+const loaded=SaveManager.load(storage);let engine=new SimulationEngine(loaded.state),saveBlocked=!!loaded.blocked;let hidden=document.hidden,last=performance.now(),savedAt=0,paintedAt=0,refreshedAt=0,toastTimer;let editing=null;
 const away=engine.resume();const renderer=new Renderer($('world'));const needs=[['hunger','Сытость',true],['thirst','Вода',true],['energy','Энергия'],['health','Здоровье']];
 for(const [key,label] of needs){const row=document.createElement('div');row.className='meter';row.innerHTML=`<span>${label}</span><div class="track"><div class="fill" id="bar-${key}"></div></div><em id="val-${key}"></em>`;$('needs').append(row);}
 function toast(text){$('toast').textContent=text;$('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),5500);}
 function save(){if(saveBlocked){$('save-status').textContent='⚠ Автосохранение остановлено. Экспортируйте данные в настройках.';return;}const ok=SaveManager.save(engine.state,storage);$('save-status').textContent=ok?'✓ Прогресс сохранён на этом устройстве':'⚠ Сохранение недоступно. Экспортируйте данные.';}
 function refresh(){const s=engine.state;for(const [key,,invert]of needs){const v=Math.round(invert?100-s.needs[key]:s.needs[key]);$('bar-'+key).style.width=v+'%';$('bar-'+key).style.background=v<25?'#c38c6c':'#8f9e73';$('val-'+key).textContent=v+'%';}
- const report=HealthSystem.report(s);const wellnessText=report.title+(s.illness.kind?(report.recovering?' · Восстанавливается':' · Нужен уход'):'');if($('wellness-status').textContent!==wellnessText)$('wellness-status').textContent=wellnessText;$('wellness-status').classList.toggle('needs-care',!!s.illness.kind);$('behavior').textContent='Пончик '+LABELS[s.pet.state];$('cage-summary').textContent=`Гнездо ${Math.round(s.cage.nest)}% · Тайник ${Math.round(s.cage.stash)} · В щёчках ${Math.round(s.pet.carry)}`;$('bond-summary').textContent=`${CHARACTERS[s.bond.character].name} · Доверие ${Math.round(s.bond.trust)}%`;$('scene-clock').textContent=`День ${1+Math.floor(s.elapsed/86400)} · ${s.alive?'Уютно дома':'Память о Пончике'}`;$('mode-label').textContent=s.mode==='child'?'● Детский режим':'● Реалистичный режим';
- for(const[k,label]of [['food','Запас'],['water','Запас'],['clean','Чистота']])$(k+'-stock').textContent=label+' '+Math.round(s.cage[k])+'%';document.querySelectorAll('[data-action]').forEach(b=>b.disabled=!s.alive);
+ const report=HealthSystem.report(s);const wellnessText=report.title+(s.illness.kind?(report.recovering?' · Восстанавливается':' · Нужен уход'):'');if($('wellness-status').textContent!==wellnessText)$('wellness-status').textContent=wellnessText;$('wellness-status').classList.toggle('needs-care',!!s.illness.kind);$('behavior').textContent=editing?'Планировка · '+ITEMS[editing.selected].name:'Пончик '+LABELS[s.pet.state];$('cage-summary').textContent=`Гнездо ${Math.round(s.cage.nest)}% · Тайник ${Math.round(s.cage.stash)} · В щёчках ${Math.round(s.pet.carry)}`;$('bond-summary').textContent=`${CHARACTERS[s.bond.character].name} · Доверие ${Math.round(s.bond.trust)}%`;$('scene-clock').textContent=`День ${1+Math.floor(s.elapsed/86400)} · ${s.alive?'Уютно дома':'Память о Пончике'}`;$('mode-label').textContent=s.mode==='child'?'● Детский режим':'● Реалистичный режим';
+ for(const[k,label]of [['food','Запас'],['water','Запас'],['clean','Чистота']])$(k+'-stock').textContent=label+' '+Math.round(s.cage[k])+'%';document.querySelectorAll('[data-action]').forEach(b=>b.disabled=!s.alive||!!editing);
+ for(const id of ['settings','journal','health'])$(id).disabled=!!editing;$('edit-cage').disabled=!s.alive||!!editing;
  $('tip-text').textContent=s.illness.kind?report.advice:s.needs.health<50?'Пончику нужен уход. Проверьте воду, корм и чистоту клетки. Подробности — в разделе здоровья.':s.pet.state==='sleep'?'Пончик отдыхает в домике. Дайте ему спокойно поспать: так он восстанавливает энергию.':'Пончик обустраивает гнездо и прячет корм в домике. Общайся с ним тихо и давай время отдохнуть.';
 }
 function open(title){$('modal-title').textContent=title;$('modal-body').replaceChildren();$('modal').showModal();return $('modal-body');}
@@ -24,8 +26,44 @@ $('settings').onclick=()=>{const body=open('Настройки');paragraph(body,
  select.onchange=()=>{if(select.value==='realistic'&&!confirm('В реалистичном режиме питомец может умереть из-за отсутствия ухода или игрового старения, в том числе пока игра закрыта. Включить?')){select.value=engine.state.mode;return;}engine.state.mode=select.value;EventJournal.add(engine.state,'Режим изменён: '+(select.value==='child'?'детский':'реалистичный'));refresh();save();};body.append(select);paragraph(body,'После закрытия жизнь рассчитывается при следующем открытии. Не нужно держать приложение в фоне. Один реальный день равен одному игровому. За одно возвращение учитывается не больше 30 дней.','note');
  button(body,'Скачать сохранение',download);paragraph(body,'Восстановить из файла (заменяет текущую жизнь):');const input=document.createElement('input');input.type='file';input.accept='.json,application/json';input.setAttribute('aria-label','Импорт сохранения');input.onchange=async()=>{const f=input.files[0];if(!f)return;try{if(f.size>1e6)throw Error('large');const state=SaveManager.validate(JSON.parse(await f.text()));if(!confirm('Заменить текущую жизнь выбранным сохранением?'))return;engine=new SimulationEngine(state);saveBlocked=false;engine.resume();renderer.visualX=null;last=performance.now();refresh();save();$('modal').close();toast('Сохранение восстановлено.');}catch{toast('Не удалось прочитать файл: сохранение повреждено или имеет другую версию.');}};body.append(input);
  paragraph(body,'Для офлайн-запуска откройте игру по HTTPS и дождитесь сообщения «Офлайн-версия сохранена». Затем можно добавить её на главный экран через меню браузера. Встроенный браузер ChatGPT может ограничивать установку; используйте Chrome.','note');
- paragraph(body,`HAMSTER LIFE ${VERSION}. Без платных API, рекламы и покупок. Данные находятся в браузере этого устройства. Очистка данных браузера удалит прогресс; сохраните резервный файл. Перестановка предметов запланирована на 0.3.`,'note');};
-function frame(now){if(!hidden){const dt=(now-last)/1000;if(dt>2)engine.resume();else engine.advance(dt);if(now-savedAt>5000){save();savedAt=now;}if(now-refreshedAt>500){refresh();refreshedAt=now;}}last=now;if(now-paintedAt>32){renderer.draw(engine.state,now);paintedAt=now;}requestAnimationFrame(frame);}
-document.addEventListener('visibilitychange',()=>{hidden=document.hidden;if(hidden)save();else{engine.resume();last=performance.now();refresh();save();}});window.addEventListener('pagehide',save);refresh();save();requestAnimationFrame(frame);
+ paragraph(body,`HAMSTER LIFE ${VERSION}. Без платных API, рекламы и покупок. Данные находятся в браузере этого устройства. Очистка данных браузера удалит прогресс; сохраните резервный файл. Предметы перемещаются через кнопку «Предметы» под клеткой. В планировке жизнь отображается на паузе, прошедшее время рассчитывается после выхода.`,'note');};
+const world=$('world');
+function editorHint(text){if($('layout-hint').textContent!==text)$('layout-hint').textContent=text;}
+function moveItem(x){if(!editing)return;const result=CageLayout.move(editing.draft,editing.selected,x);editing.draft=result.layout;editing.invalid=!result.ok;editing.candidate=result.candidate;$('layout-done').disabled=!result.ok;editorHint(result.ok?'Место свободно. Нажмите «Готово», чтобы сохранить.':result.message);}
+$('edit-cage').onclick=()=>{
+ if(!engine.state.alive||editing)return;
+ save();editing={draft:CageLayout.snapshot(engine.state.cage),selected:'home',invalid:false,candidate:null,drag:null};
+ $('layout-item').value='home';$('layout-done').disabled=false;$('layout-tools').hidden=false;world.classList.add('editing');editorHint('Перетащите предмет пальцем. Можно выбрать предмет и коснуться места. Жизнь будет рассчитана после выхода.');refresh();
+};
+function finishLayout(commit){
+ if(!editing)return;
+ const draft=editing.draft;
+ if(commit&&(editing.invalid||!CageLayout.validate(draft).ok)){editorHint('Выберите свободное место.');return;}
+ engine.resume();
+ const applied=commit&&CageLayout.commit(engine.state,draft);
+ if(applied)EventJournal.add(engine.state,'Вы переставили предметы. Пончик осваивает новую планировку.');
+ editing=null;$('layout-tools').hidden=true;world.classList.remove('editing');last=performance.now();refresh();save();
+ toast(applied?'Расположение сохранено. Пончик сам найдёт кормушку и домик.':commit?'Планировка не изменена: жизнь питомца завершилась.':'Перестановка отменена.');
+}
+$('layout-done').onclick=()=>finishLayout(true);$('layout-cancel').onclick=()=>finishLayout(false);
+$('layout-item').onchange=()=>{if(editing){if(editing.drag){$('layout-item').value=editing.selected;return;}editing.selected=$('layout-item').value;editing.invalid=false;$('layout-done').disabled=false;refresh();}};
+$('layout-left').onclick=()=>{if(editing)moveItem(editing.draft[editing.selected]-10);};$('layout-right').onclick=()=>{if(editing)moveItem(editing.draft[editing.selected]+10);};
+function pointerPoint(e){return canvasPoint(e.clientX,e.clientY,world.getBoundingClientRect(),getComputedStyle(world).objectFit);}
+world.addEventListener('pointerdown',e=>{
+ if(!editing||editing.drag||!e.isPrimary)return;
+ const point=pointerPoint(e);if(!point)return;e.preventDefault();
+ const key=CageLayout.hit(editing.draft,point.x,point.y);if(key)editing.selected=key;
+ $('layout-item').value=editing.selected;
+ editing.drag={id:e.pointerId,offset:key?point.x-editing.draft[key]:0,before:{...editing.draft}};
+ world.setPointerCapture(e.pointerId);if(!key)moveItem(point.x);refresh();
+});
+world.addEventListener('pointermove',e=>{if(!editing||editing.drag?.id!==e.pointerId)return;const point=pointerPoint(e);if(point){e.preventDefault();moveItem(point.x-editing.drag.offset);}});
+world.addEventListener('pointerup',e=>{if(!editing||editing.drag?.id!==e.pointerId)return;const point=pointerPoint(e);if(point)moveItem(point.x-editing.drag.offset);editing.drag=null;if(world.hasPointerCapture(e.pointerId))world.releasePointerCapture(e.pointerId);});
+function cancelDrag(e){if(!editing||editing.drag?.id!==e.pointerId)return;editing.draft=editing.drag.before;editing.drag=null;editing.invalid=false;$('layout-done').disabled=false;editorHint('Движение отменено. Можно попробовать ещё раз.');}
+world.addEventListener('pointercancel',cancelDrag);world.addEventListener('lostpointercapture',cancelDrag);
+window.addEventListener('keydown',e=>{if(editing&&e.key==='Escape')finishLayout(false);});
+
+function frame(now){if(!hidden){if(!editing){const dt=(now-last)/1000;if(dt>2)engine.resume();else engine.advance(dt);}if(now-savedAt>5000){save();savedAt=now;}if(now-refreshedAt>500){refresh();refreshedAt=now;}}last=now;if(now-paintedAt>32){renderer.draw(editing?{...engine.state,cage:{...engine.state.cage,...editing.draft}}:engine.state,now,editing);paintedAt=now;}requestAnimationFrame(frame);}
+document.addEventListener('visibilitychange',()=>{hidden=document.hidden;if(hidden)save();else{if(!editing)engine.resume();last=performance.now();refresh();save();}});window.addEventListener('pagehide',save);refresh();save();requestAnimationFrame(frame);
 if(loaded.message)toast(loaded.message);else if(away.seconds>60)toast(`С возвращением! Рассчитано ${Math.round(away.seconds/60)} мин. жизни. Подробности в дневнике.`);
 if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').then(async reg=>{await navigator.serviceWorker.ready;const worker=reg.active||reg.installing||reg.waiting;if(worker?.state==='activated')toast('Офлайн-версия сохранена. Можно играть без интернета.');else worker?.addEventListener('statechange',()=>{if(worker.state==='activated')toast('Офлайн-версия сохранена. Можно играть без интернета.');});}).catch(()=>toast('Офлайн-кэш недоступен. Для запуска сейчас нужен интернет.'));
