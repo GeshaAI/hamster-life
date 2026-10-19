@@ -53,6 +53,16 @@ def controller(name, location, names):
  return ctrl
 head=controller('HeadController',(0,-.43,.58),('Head','Cheek','Ear','InnerEar','Eye','Muzzle','Nose','Whisker'))
 body=controller('BodyController',(0,.06,.40),('Body','Belly','Tail'))
+# Independent paw pivots for procedural locomotion in Godot.
+for side in (-1,1):
+ for y,label in ((-.31,'Front'),(.39,'Rear')):
+  paw=bpy.data.objects.get('Paw'+str(side)+str(y))
+  if paw:
+   pivot=bpy.data.objects.new('PawPivot_%s_%s'%('L' if side<0 else 'R',label),None)
+   bpy.context.collection.objects.link(pivot)
+   pivot.location=paw.location.copy()
+   bpy.context.view_layer.update()
+   world=paw.matrix_world.copy();paw.parent=pivot;paw.matrix_world=world
 def key(obj, frame, location=None, rotation=None, scale=None):
  if location is not None:
   obj.location=location; obj.keyframe_insert(data_path='location',frame=frame)
@@ -68,11 +78,7 @@ scene.frame_end=72
 for frame,breath,sniff in [(1,1.0,0),(19,1.025,.045),(37,1.0,0),(55,1.02,-.03),(72,1.0,0)]:
  key(body,frame,scale=(1,1,breath))
  key(head,frame,rotation=(sniff,0,0))
-for obj in (body,head):
- if obj.animation_data and obj.animation_data.action:
-  for fc in obj.animation_data.action.fcurves:
-   for k in fc.keyframe_points:
-    k.interpolation='BEZIER'
+# Blender 3.x and 4.x differ in animation action APIs; defaults are smooth.
 scene.frame_set(1)
 bpy.ops.wm.save_as_mainfile(filepath='/tmp/hamster.blend')
 bpy.ops.export_scene.gltf(filepath='/tmp/hamster.glb',export_format='GLB',export_animations=True)
