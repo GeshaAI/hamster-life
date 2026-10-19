@@ -7,7 +7,7 @@
 0.2.1 — игровые недомогания и восстановление. Ожидает проверки на устройстве. Работу 0.1.0 пользователь подтвердил; отдельной приёмки обновлений пока нет. Продолжение 0.2.x авторизовано повторными просьбами «Продолжай».
 
 Единый репозиторий: https://github.com/GeshaAI/hamster-life
-Текущая ветка: feature/health-v0.2.1 от feature/life-behavior-v0.2, базовый HEAD bcbb3347aff1d76550b1172e17d04c79b059e413. Добавочный PR направить в feature/life-behavior-v0.2; ссылку и проверенный коммит записать после создания. PR #2 (поведение 0.2.0) https://github.com/GeshaAI/hamster-life/pull/2 ведёт в feature/v0.1-prototype, PR #1 https://github.com/GeshaAI/hamster-life/pull/1 — в main. Не считать их слитыми и не переписывать чужие новые коммиты.
+Текущая ветка: feature/health-v0.2.1 от feature/life-behavior-v0.2, базовый HEAD bcbb3347aff1d76550b1172e17d04c79b059e413. Проверенный коммит реализации 0.2.1: c77f992c664a2cc04d4bfe9e125f7001d5abba9d. Добавочный PR #3: https://github.com/GeshaAI/hamster-life/pull/3 → feature/life-behavior-v0.2, открыт, не слит. Следующий коммит меняет только документы передачи; актуальный HEAD проверять через GitHub. PR #2 (поведение 0.2.0) https://github.com/GeshaAI/hamster-life/pull/2 ведёт в feature/v0.1-prototype, PR #1 https://github.com/GeshaAI/hamster-life/pull/1 — в main. Не считать их слитыми и не переписывать чужие новые коммиты.
 
 Адрес игры: https://hamster-life.halejam.chatgpt.site. Project ID: appgprj_6ad5ff07d6b88191bd969d47e3c8d8b7. Последняя до этого этапа публикация 0.2.0: технический коммит Sites b350649e35c8f724e0df96bae35f0d536f0cf94b. Публиковать 0.2.1 по тому же адресу, сохранив project_id. Не путать SHA технического хостинга и общего GitHub.
 
