@@ -1,12 +1,14 @@
 import {ITEMS} from './layout.js';
 import {LABELS,COATS} from './model.js';
 export class Renderer {
- constructor(canvas){this.canvas=canvas;this.c=canvas.getContext('2d');this.previousX=null;this.visualX=null;this.model3d=null;this.state3d=null;this.yaw=1.05;this.loading3d=true;this.inspector=null;
-  this.ready=import('./hamster3d.js').then(async({Hamster3D})=>{const model=new Hamster3D();try{await model.load();this.model3d=model;if(this.inspector)model.canvas.width=model.canvas.height=384;}catch(error){model.dispose();throw error;}}).catch(error=>{this.error3d=error.message;}).finally(()=>{this.loading3d=false;});
+ constructor(canvas){this.canvas=canvas;this.c=canvas.getContext('2d');this.previousX=null;this.visualX=null;this.model3d=null;this.state3d=null;this.yaw=1.05;this.loading3d=true;this.inspector=null;this.useWorld=true;this.habitat3d=null;
+  this.ready=import('./hamster3d.js').then(async({Hamster3D})=>{const model=new Hamster3D();try{await model.load();this.model3d=model;if(this.inspector)model.canvas.width=model.canvas.height=384;try{const {Habitat3D,project}=await import('./habitat3d.js');this.habitat3d=new Habitat3D(model);this.project3d=project;}catch(error){this.worldError=error.message;}}catch(error){model.dispose();throw error;}}).catch(error=>{this.error3d=error.message;}).finally(()=>{this.loading3d=false;});
  }
- get renderMode(){return this.loading3d?'Загружаю 3D…':this.model3d&&!this.model3d.lost?'● 3D-хомячок':'2D · 3D недоступно';}
+ get renderMode(){return this.loading3d?'Загружаю 3D…':this.model3d&&!this.model3d.lost?this.useWorld&&this.habitat3d?'● 3D-клетка':'● 3D-хомячок · вид спереди':'2D · 3D недоступно';}
 
- draw(s,t,editor=null){this.state3d=s;const targetYaw=(s.pet.direction||1)*1.05;this.yaw+=Math.atan2(Math.sin(targetYaw-this.yaw),Math.cos(targetYaw-this.yaw))*.18;const c=this.c;const W=1000,H=540;c.clearRect(0,0,W,H);const gradient=c.createLinearGradient(0,0,0,H);gradient.addColorStop(0,'#ececdf');gradient.addColorStop(1,'#e2e4d2');c.fillStyle=gradient;c.fillRect(0,0,W,H);
+ draw(s,t,editor=null){this.state3d=s;if(this.inspector)return;const targetYaw=(s.pet.direction||1)*1.05;this.yaw+=Math.atan2(Math.sin(targetYaw-this.yaw),Math.cos(targetYaw-this.yaw))*.18;const c=this.c;const W=1000,H=540;
+ if(this.useWorld&&this.habitat3d&&!editor){try{const image=this.habitat3d.render(s,t);if(image){c.clearRect(0,0,W,H);c.drawImage(image,0,0,W,H);if(s.alive&&['sleep','rest','hide'].includes(s.pet.state)&&Math.abs(s.pet.x-s.cage.home)<8){const at=this.project3d([(s.cage.home-500)/100,2.3,-.7]);c.fillStyle='#52683c';c.font='italic 22px Georgia';c.fillText('z Z',at.x,at.y-Math.sin(t*.002)*4);}if(!s.alive){c.fillStyle='#f6f3ece0';c.fillRect(0,0,W,H);c.textAlign='center';c.fillStyle='#58634d';c.font='32px Georgia';c.fillText(s.name+' останется в вашей памяти',500,260);c.font='17px system-ui';c.fillText('Его история сохранена в дневнике',500,300);c.textAlign='left';}return;}}catch(error){this.worldError=error.message;this.habitat3d.dispose();this.habitat3d=null;}}
+ c.clearRect(0,0,W,H);const gradient=c.createLinearGradient(0,0,0,H);gradient.addColorStop(0,'#ececdf');gradient.addColorStop(1,'#e2e4d2');c.fillStyle=gradient;c.fillRect(0,0,W,H);
  // softly lit wallpaper, shadows and a framed botanical print
  for(let x=36;x<1000;x+=80){c.strokeStyle='#d8deca77';c.lineWidth=1;c.beginPath();c.moveTo(x,0);c.lineTo(x,350);c.stroke();}
  this.round(450,34,107,122,5,'#c8cbb4');this.round(456,39,95,110,2,'#f5f2df');c.strokeStyle='#8b9c71';c.lineWidth=3;c.beginPath();c.moveTo(504,128);c.bezierCurveTo(484,90,526,74,501,54);c.stroke();for(let k=0;k<5;k++){const x=500+(k%2?9:-9),y=65+k*11;c.fillStyle=k%2?'#95a17a':'#b2ba8e';c.beginPath();c.ellipse(x,y,11,5,k%2?-.65:.65,0,Math.PI*2);c.fill();}
