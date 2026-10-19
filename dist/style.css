@@ -25,3 +25,5 @@
 
 .cage-summary,.bond-summary{font-size:11px;color:#748164;line-height:1.5;margin-top:10px}.bond-summary{border-top:1px solid #dfe3d6;padding-top:8px}
 @media (min-width:700px) and (min-height:480px) and (orientation:landscape){.actions button{min-height:72px;padding:8px 12px;gap:2px}.meter{margin:8px 0}.cage-summary,.bond-summary{font-size:10px;margin-top:7px}.bond-summary{padding-top:6px}.save-line{margin-top:8px}}
+
+.wellness-status{font-size:10px;line-height:1.5;color:#748164;padding:6px 0}.wellness-status.needs-care{color:#986538;background:#eee6d6;border-radius:7px;padding:6px 8px}

@@ -14,7 +14,7 @@ export class Renderer {
  // a little wooden bridge and a seed
  this.shadow(570,427,58,12);c.fillStyle='#b28e60';c.beginPath();c.ellipse(565,418,47,28,0,Math.PI,0);c.lineTo(612,430);c.lineTo(518,430);c.fill();for(let i=0;i<7;i++)this.round(523+i*12,394+Math.abs(3-i)*5,9,31,4,'#caa779');
  const p=s.pet;if(this.visualX===null)this.visualX=p.x;this.visualX+=(p.x-this.visualX)*.11;
- const atHome=(p.state==='sleep'||p.state==='hide')&&Math.abs(p.x-s.cage.home)<8;
+ const atHome=(p.state==='sleep'||p.state==='hide'||p.state==='rest')&&Math.abs(p.x-s.cage.home)<8;
  const atWheel=p.state==='wheel'&&Math.abs(p.x-s.cage.wheel)<8;
  if(atHome){c.fillStyle='#f4dfb7';c.font='italic 23px Georgia';c.fillText('z',s.cage.home+5,310-Math.sin(t*.001)*6);c.font='italic 17px Georgia';c.fillText('z',s.cage.home+25,291-Math.sin(t*.001+1)*5);}
  else if(!s.alive){this.hamster(this.visualX,435,t,1,false,true);}
