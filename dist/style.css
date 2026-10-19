@@ -33,3 +33,5 @@
 .header-actions{display:flex;gap:2px;align-items:center;flex-shrink:0}.home-card{padding:12px;margin:12px 0;border:1px solid #d2dcc5;border-radius:12px;background:#f1f5e8}.home-card h3{margin:0;font-size:16px}.home-card p{margin:6px 0;font-size:12px}.pet-form label{display:block;font-size:12px;margin:12px 0 5px}.pet-form input{font:inherit;width:100%;min-height:48px;padding:10px;border:1px solid #bbc8ac;border-radius:10px;background:white}#modal-body .form-error{color:#a45e3d;font-size:12px}@media(max-width:520px){.homes-label{display:none}header{gap:4px}.header-actions .quiet{padding:6px 7px}.brand{font-size:13px;letter-spacing:.6px}.brand .logo{font-size:23px}}
 
 .intro>div:first-child{min-width:0}.intro h1{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.intro .mode-pill{flex-shrink:0}
+
+#world.playing{touch-action:none;cursor:pointer}
