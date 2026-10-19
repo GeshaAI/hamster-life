@@ -25,6 +25,19 @@ for sign in [-1,1]:
   ell('Paw'+str(sign)+str(y),(.31*sign,y,.105),(.115,.15,.07),pink)
 ell('Muzzle',(0,-.72,.43),(.14,.13,.11),cream)
 ell('Nose',(0,-.845,.47),(.065,.045,.043),pink)
+# Lightweight whiskers and catchlights for mobile rendering.
+from mathutils import Vector
+whisker=mat('Whiskers',(.28,.22,.17))
+shine=mat('Eye highlight',(.95,.92,.82),.18)
+def segment(name,start,end):
+ a,b=Vector(start),Vector(end); d=b-a
+ bpy.ops.mesh.primitive_cylinder_add(vertices=6,radius=.003,depth=d.length,location=(a+b)*.5)
+ ob=bpy.context.object; ob.name=name; ob.rotation_euler=d.to_track_quat('Z','Y').to_euler()
+ ob.data.materials.append(whisker)
+for sign in (-1,1):
+ for index,dz in enumerate((-.06,0,.06)):
+  segment('Whisker_%s_%s'%(sign,index),(.13*sign,-.76,.43+dz),(.44*sign,-.80,.38+dz*.5))
+ ell('EyeHighlight'+str(sign),(.19*sign,-.731,.699),(.018,.009,.018),shine,12,8)
 ell('Tail',(0,.61,.32),(.075,.11,.065),pink)
 bpy.ops.wm.save_as_mainfile(filepath='/tmp/hamster.blend')
 bpy.ops.export_scene.gltf(filepath='/tmp/hamster.glb',export_format='GLB')
