@@ -1,0 +1,80 @@
+extends Node3D
+## Autonomous hamster brain for Godot 4. Attach to a parent Node3D containing
+## the imported hamster model with hamster_locomotion.gd.
+## Place FoodPoint, WaterPoint and BedPoint Marker3D nodes as children of this node.
+## This is a standalone prototype, not yet integrated into the main game.
+enum State { WANDER, SEEK_FOOD, EAT, SEEK_WATER, DRINK, SEEK_BED, SLEEP }
+@export var model: Node3D
+@export var food_point: Marker3D
+@export var water_point: Marker3D
+@export var bed_point: Marker3D
+@export var roam_radius: float = 1.3
+@export var hunger_per_second: float = 0.45
+@export var thirst_per_second: float = 0.65
+@export var fatigue_per_second: float = 0.18
+@export var recover_per_second: float = 1.7
+var hunger: float = 15.0
+var thirst: float = 12.0
+var fatigue: float = 5.0
+var state: State = State.WANDER
+var _target: Vector3 = Vector3.ZERO
+var _activity_timer: float = 0.0
+var _rng := RandomNumberGenerator.new()
+func _ready() -> void:
+ _rng.randomize()
+ _pick_roam_target()
+func _physics_process(delta: float) -> void:
+ hunger = clampf(hunger + hunger_per_second * delta, 0.0, 100.0)
+ thirst = clampf(thirst + thirst_per_second * delta, 0.0, 100.0)
+ if state != State.SLEEP:
+  fatigue = clampf(fatigue + fatigue_per_second * delta, 0.0, 100.0)
+ _activity_timer = maxf(0.0, _activity_timer - delta)
+ match state:
+  State.WANDER:
+   if thirst >= 65.0 and water_point != null:
+    _seek(State.SEEK_WATER, water_point.global_position)
+   elif hunger >= 65.0 and food_point != null:
+    _seek(State.SEEK_FOOD, food_point.global_position)
+   elif fatigue >= 70.0 and bed_point != null:
+    _seek(State.SEEK_BED, bed_point.global_position)
+   elif _arrived():
+    _pick_roam_target()
+  State.SEEK_FOOD, State.SEEK_WATER, State.SEEK_BED:
+   if _arrived():
+    _activity_timer = 3.0 if state != State.SEEK_BED else 8.0
+    if state == State.SEEK_FOOD: state = State.EAT
+    elif state == State.SEEK_WATER: state = State.DRINK
+    else: state = State.SLEEP
+  State.EAT:
+   hunger = maxf(0.0, hunger - 22.0 * delta)
+   if _activity_timer <= 0.0: _resume()
+  State.DRINK:
+   thirst = maxf(0.0, thirst - 30.0 * delta)
+   if _activity_timer <= 0.0: _resume()
+  State.SLEEP:
+   fatigue = maxf(0.0, fatigue - recover_per_second * 6.0 * delta)
+   if _activity_timer <= 0.0: _resume()
+ if model != null and model.has_method("set_move_direction"):
+  var direction := Vector3.ZERO
+  if state in [State.WANDER, State.SEEK_FOOD, State.SEEK_WATER, State.SEEK_BED]:
+   direction = _target - model.global_position
+   direction.y = 0.0
+   if direction.length() > 0.09:
+    direction = direction.normalized()
+   else:
+    direction = Vector3.ZERO
+  model.set_move_direction(direction)
+func _arrived() -> bool:
+ if model == null: return true
+ var distance := model.global_position.distance_to(Vector3(_target.x, model.global_position.y, _target.z))
+ return distance <= 0.12
+func _seek(next_state: State, point: Vector3) -> void:
+ state = next_state
+ _target = point
+func _resume() -> void:
+ state = State.WANDER
+ _pick_roam_target()
+func _pick_roam_target() -> void:
+ var angle := _rng.randf_range(0.0, TAU)
+ var radius := sqrt(_rng.randf()) * maxf(roam_radius, 0.1)
+ _target = global_position + Vector3(cos(angle) * radius, 0.0, sin(angle) * radius)
