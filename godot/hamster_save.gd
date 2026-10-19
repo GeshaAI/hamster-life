@@ -35,7 +35,7 @@ static func load_brain(brain: Node) -> bool:
   if not data.has(key) or typeof(data[key]) not in [TYPE_FLOAT, TYPE_INT]:
    return false
  var elapsed := clampf(Time.get_unix_time_from_system() - float(data["saved_at_unix"]), 0.0, MAX_OFFLINE_SECONDS)
- brain.set("hunger", clampf(float(data["hunger"]) + float(brain.get("hunger_per_second")) * elapsed, 0.0, 100.0)
- brain.set("thirst", clampf(float(data["thirst"]) + float(brain.get("thirst_per_second")) * elapsed, 0.0, 100.0)
- brain.set("fatigue", clampf(float(data["fatigue"]) + float(brain.get("fatigue_per_second")) * elapsed, 0.0, 100.0)
+ brain.set("hunger", clampf(float(data["hunger"]) + float(brain.get("hunger_per_second")) * elapsed, 0.0, 100.0))
+ brain.set("thirst", clampf(float(data["thirst"]) + float(brain.get("thirst_per_second")) * elapsed, 0.0, 100.0))
+ brain.set("fatigue", clampf(float(data["fatigue"]) + float(brain.get("fatigue_per_second")) * elapsed, 0.0, 100.0))
  return true
