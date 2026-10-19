@@ -1,5 +1,5 @@
 // All rates are game design, not veterinary predictions. No network dependencies.
-export const VERSION = '0.1.0';
+export const VERSION = '0.1.1';
 export const clamp = (n, min=0, max=100) => Math.min(max, Math.max(min,n));
 export const LABELS = {explore:'исследует клетку',eat:'ест зёрнышки',drink:'пьёт воду',sleep:'спит в домике',wheel:'бежит в колесе',groom:'умывается',hide:'отдыхает в укрытии',dead:'жизнь завершилась'};
 export function initialState(now=Date.now()) {return {version:1,lastSeen:now,mode:'child',name:'Пончик',age:30*86400,elapsed:0,alive:true,deathReason:null,needs:{hunger:46,thirst:32,energy:78,stress:12,health:100},cage:{food:80,water:90,clean:95,home:165,wheel:760,bowl:390,bottle:895},pet:{x:505,state:'explore',target:505,timer:0,sleeping:false,direction:1},journal:[{at:now,text:'Пончик поселился в новом домике.'}],seed:7351};}
