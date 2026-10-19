@@ -1,0 +1,22 @@
+name: Build hamster GLB
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'tools/blender/hamster.py'
+      - '.github/workflows/build-model.yml'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Blender
+        run: sudo apt-get update && sudo apt-get install -y blender
+      - name: Generate model
+        run: blender -b -t 2 --python tools/blender/hamster.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hamster-model
+          path: |
+            /tmp/hamster.glb
+            /tmp/hamster.blend
