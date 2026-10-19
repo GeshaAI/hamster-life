@@ -1,0 +1,20 @@
+name: Check browser simulation
+on:
+  push:
+    paths: ['dist/**', 'tests/**', 'package.json', '.github/workflows/web-check.yml']
+  pull_request:
+    paths: ['dist/**', 'tests/**', 'package.json', '.github/workflows/web-check.yml']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm test
+      - name: Check JavaScript syntax
+        run: |
+          for file in dist/js/*.js dist/sw.js; do node --check "$file"; done
