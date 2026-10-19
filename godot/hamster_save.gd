@@ -9,7 +9,9 @@ static func save_brain(brain: Node) -> bool:
   "saved_at_unix": Time.get_unix_time_from_system(),
   "hunger": clampf(float(brain.get("hunger")), 0.0, 100.0),
   "thirst": clampf(float(brain.get("thirst")), 0.0, 100.0),
-  "fatigue": clampf(float(brain.get("fatigue")), 0.0, 100.0)
+  "fatigue": clampf(float(brain.get("fatigue")), 0.0, 100.0),
+  "food_amount": float(brain.get("food_amount")),
+  "water_amount": float(brain.get("water_amount"))
  }
  var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
  if file == null:
@@ -38,4 +40,8 @@ static func load_brain(brain: Node) -> bool:
  brain.set("hunger", clampf(float(data["hunger"]) + float(brain.get("hunger_per_second")) * elapsed, 0.0, 100.0))
  brain.set("thirst", clampf(float(data["thirst"]) + float(brain.get("thirst_per_second")) * elapsed, 0.0, 100.0))
  brain.set("fatigue", clampf(float(data["fatigue"]) + float(brain.get("fatigue_per_second")) * elapsed, 0.0, 100.0))
+ if data.has("food_amount"):
+  brain.set("food_amount", clampf(float(data["food_amount"]), 0.0, float(brain.get("food_capacity"))))
+ if data.has("water_amount"):
+  brain.set("water_amount", clampf(float(data["water_amount"]), 0.0, float(brain.get("water_capacity"))))
  return true
